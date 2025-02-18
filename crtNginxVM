@@ -1,4 +1,9 @@
+#Azure CLI commands
+
 #Create a Linux virtual machine and install Nginx (PoverShell)
+
+#Login to Azure
+az login
 
 #From Cloud Shell, run the following az vm create command to create a Linux VM
 az vm create \
