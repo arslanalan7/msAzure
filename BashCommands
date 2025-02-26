@@ -1,0 +1,12 @@
+#********* ls *******
+$ls -al /etc
+$ls *.png
+$ls *.jpg *.jpeg     # (or ls *.jp*g)
+$ls 000?.jpg      # 0001.jpg, 0002.jpg etc.
+$ls *.[jp]*      #.jpg, .jpeg, .png   not .gif
+$ls *.[jpJP]*    # linux is case-sensitive, so write like this
+$ls [a-z]*
+
+#********* man, help *******
+$man mkdir
+$mkdir --help
