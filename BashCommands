@@ -1,12 +1,68 @@
 #********* ls *******
-$ls -al /etc
+$ls -al /etc      #list all files, include hidden files
 $ls *.png
 $ls *.jpg *.jpeg     # (or ls *.jp*g)
 $ls 000?.jpg      # 0001.jpg, 0002.jpg etc.
 $ls *.[jp]*      #.jpg, .jpeg, .png   not .gif
 $ls *.[jpJP]*    # linux is case-sensitive, so write like this
-$ls [a-z]*
+$ls [a-z]*      #Lists files that start with a lowercase letter
+$ls [A-Z]*      #Lists files that start with a uppercase letter
+$ls [a-zA-Z]*   #Lists files that start with a uppercase or lowercase letter
+$ls [0-9]*
+$ls *[0-9]*
+$ls *[0-9]
+$ls *\**      #escape 
 
 #********* man, help *******
 $man mkdir
 $mkdir --help
+
+#********* cat *******
+$cat /etc/os-release    #Indicates which Linux distribution it is
+
+#********* cd *******
+$cd orders
+$cd .     #current folder
+$cd ..    #parent folder
+$cd ~    #changes to your home directory
+
+#********* mkdir *******
+$mkdir --parents orders/2019    #creates both orders and 2019 folders
+
+#********* rm *******
+$rm 0001.jpg
+$rm *          #Delete all the things in current directory
+$rm -i *       #Ask befor deleting. Always use "-i" flag.
+$rm -rf /      #DON'T DO THIS. Delete all the things under root folder
+$rm -r orders  #Delete even if not empty 
+
+#********* cp *******
+$cp 0001.jpg 0002.jpg
+$cp * photos            #copy all the things in current directory to photos directory
+$cp photos/* images
+$cp -r photos images    #if images folder not exist use this command to create before copying
+
+#********* ps *******
+$ps          #Lists all processes
+$ps -e      #Lists all running processes
+$ps -ef    #(ps aux) 
+
+#********* w *******
+#list signed-in users and activities of them
+
+#********* I/O Operators *******
+$ls > listing.txt                #create listing.txt and write on it
+$ls >> listing.txt                #append to listing.txt
+$ps -ef | more                    #list page by page
+$ps -ef | head                    #list first several rows
+$ps -ef | grep daemon             #list rows containing "daemon"
+$sort < file.txt                  #read file.txt and sort
+$sort < file.txt > sorted_file.txt  #sort and write another file
+$cat file.txt | fmt | prl | lpr      #format outputs, paginate them and send to printer
+
+#********* pwd *******
+$pwd    #shows current directory
+
+**************************************
+$az vm list-sizes --location westus --output table | grep DS.*_vs2      #lists Data Science (DS) Version 2 VMs on Westus region
+
