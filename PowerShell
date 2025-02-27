@@ -1,0 +1,27 @@
+$PSVersionTable                      #Indicates version
+$PSVersionTable.PSVersion            #Indicates detailed version
+Get-Verb                              #list of approved cmdlet verbs
+Get-Command                          #The cmdlet lists all of the available cmdlets on your system
+Get-Help
+Get-Member                           #Learn more about command response 
+Get-Command -Noun alias*            #This command searches for all cmdlets whose noun part starts with alias For exp: Export-Alias, Get-Alias, Import-Alias
+Get-Command -Verb Get -Noun alias*  #Now you've narrowed the search to specify that the verb part needs to match Get, and the noun part needs to match alias. Output is: Get-Alias
+
+          #In this scenario, you're looking for a cmdlet that can help you work with files.
+
+Get-Command -Noun File*
+
+          #The response shows something similar to the following text:******************************
+          CommandType     Name                                               Version    Source
+          -----------     ----                                               -------    ------
+          Cmdlet          Get-FileHash                                       7.0.0.0    Microsoft.PowerShell.Utility
+          Cmdlet          Out-File                                           7.0.0.0    Microsoft.PowerShell.Utility
+          Cmdlet          Unblock-File                                       7.0.0.0    Microsoft.PowerShell.Utility
+          #**********************************************************
+
+Get-Command -Verb Get -Noun File*
+
+          #Output
+          CommandType     Name                                               Version    Source
+          -----------     ----                                               -------    ------
+          Cmdlet          Get-FileHash                                       7.0.0.0    Microsoft.PowerShell.Utility
