@@ -1,0 +1,68 @@
+#CREATE AN ARM TEMPLATE on VS Code**************************************************************************
+
+#create a new file called azuredeploy.json
+#On line 1 of the file, enter arm.  Visual Studio Code automatically displays several potential choices that start with arm!. 
+#Select the Azure Resource Manager (ARM) template. 
+#Your file now looks like this:
+
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {},
+  "functions": [],
+  "variables": {},
+  "resources": [],
+  "outputs": {}
+}
+
+#PREPARATIONS DEPLOYMENT the ARM template to Azure*********************************************************
+
+#In the command bar, select Terminal > New Terminal to open a PowerShell window
+
+Connect-AzAccount              #Sign in to Azure by using Azure PowerShell
+
+#Set the default subscription for all PowerShell commands in this session
+
+Get-AzSubscription              #obtain your subscription(s) and their ID(s)
+
+$context = Get-AzSubscription -SubscriptionId {Your subscription ID}    #replacing {Your subscription ID} with the one you copied in the previous step.
+Set-AzContext $context                                                  #This command changes your active subscription to the obtained Subscription
+
+Set-AzDefault -ResourceGroupName [sandbox resource group name]          #Sets default Resource Group. This action lets you omit that parameter from the rest of the Azure PowerShell commands 
+
+#DEPLOY the template to Azure******************************************************************************
+
+$templateFile="azuredeploy.json"
+$today=Get-Date -Format "MM-dd-yyyy"
+$deploymentName="blanktemplate-"+"$today"
+New-AzResourceGroupDeployment -Name $deploymentName -TemplateFile $templateFile
+
+#ADD A RESOURCE to the ARM template************************************************************************
+
+#In the azuredeploy.json file in Visual Studio Code, place your cursor inside the brackets in the resources block "resources":[]
+#Enter storage inside the brackets. A list of related snippets appears. Select arm-storage.
+#Your file looks like this:
+#CHANGE THE VALUES of the "resource name"(UNIQUE) and "displayName" to something 
+#CHANGE THE VALUES of the "sku name" from "Premium_LRS" to "Standard_LRS". Change the value of tier to "Standard"
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "functions": [],
+    "variables": {},
+    "resources": [{
+        "name": "learnexercise61616161",
+        "type": "Microsoft.Storage/storageAccounts",
+        "apiVersion": "2023-05-01",
+        "tags": {
+            "displayName": "learnexercise41414141"
+        },
+        "location": "[resourceGroup().location]",
+        "kind": "StorageV2",
+        "sku": {
+            "name": "Standard_LRS",
+            "tier": "Standard"
+        }
+    }],
+    "outputs": {}
+}
