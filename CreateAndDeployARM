@@ -1,3 +1,9 @@
+#!!!Recall that ARM templates are IDEMPOTENT, which means you can deploy the template to the same environment again, and
+#if nothing changes in the template, nothing changes in the environment. 
+#If a change is made to the template (for example, you change a parameter value), only that change is deployed.
+#Your template can contain all of the resources you need for your Azure solution, and you can safely execute a template again.
+#Resources are created only if they don't already exist, and updated only if there's a change.
+
 #CREATE AN ARM TEMPLATE on VS Code**************************************************************************
 
 #create a new file called azuredeploy.json
