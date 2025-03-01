@@ -130,3 +130,61 @@ New-AzResourceGroupDeployment `
   -TemplateFile $templateFile `
   -storageName {your-unique-name} `
   -storageSKU Standard_GRS
+
+#Add OUTPUT to the ARM template************************************************************************
+#place your cursor inside the braces in the outputs attribute
+#enter out. You get a list of related snippets
+#Select new-output. It adds a generic output to the template
+
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {"storageName": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 24,
+        "metadata": {
+            "description": "The name of the Azure storage resource"
+        }
+    },
+//This is the allowed values for an Azure storage account
+    "storageSKU": {
+        "type": "string",
+        "defaultValue": "Standard_LRS",
+        "allowedValues": [
+            "Standard_LRS",
+            "Standard_GRS",
+            "Standard_RAGRS",
+            "Standard_ZRS",
+            "Premium_LRS",
+            "Premium_ZRS",
+            "Standard_GZRS",
+            "Standard_RAGZRS"
+        ]
+    }},
+    "functions": [],
+    "variables": {},
+    "resources": [{
+        "name": "[parameters('storageName')]",
+        "type": "Microsoft.Storage/storageAccounts",
+        "apiVersion": "2023-05-01",
+        "tags": {
+            "displayName": "[parameters('storageName')]"
+        },
+        "location": "[resourceGroup().location]",
+        "kind": "StorageV2",
+        "sku": {
+            "name": "[parameters('storageSKU')]"
+        }
+    }],
+    "outputs": {"storageEndpoint": {
+        "type": "object",
+        "value": "[reference(parameters('storageName')).primaryEndpoints]"
+    }}
+}
+
+#DEPLOY the ARM template
+
+$today=Get-Date -Format "MM-dd-yyyy"
+$deploymentName="addOutputs-"+"$today"
+New-AzResourceGroupDeployment -Name $deploymentName -TemplateFile $templateFile -storageName {your-unique-name} -storageSKU Standard_LRS
