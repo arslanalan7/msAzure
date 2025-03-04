@@ -22,3 +22,60 @@ Key pair name	                                          test-ubuntu-cus-vm_key
 Inbound port rules	
 Public inbound ports	                                  Allow selected ports
 Select inbound ports	                                  SSH (22)
+
+#Create with Azure CLI
+az vm create \
+    --resource-group TestResourceGroup \
+    --name test-wp1-eus-vm \
+    --image Ubuntu2204 \
+    --admin-username azureuser \
+    --generate-ssh-keys
+
+#Create with Azure Powershell
+New-AzVm `
+    -ResourceGroupName "TestResourceGroup" `
+    -Name "test-wp1-eus-vm" `
+    -Location "East US" `
+    -Image Debian11 `
+    -VirtualNetworkName "test-wp1-eus-network" `
+    -SubnetName "default" `
+    -SecurityGroupName "test-wp1-eus-nsg" `
+    -PublicIpAddressName "test-wp1-eus-pubip" `
+    -GenerateSshKey `
+    -SshKeyName myPSKey
+    -OpenPorts 22
+
+#Here's an example snippet of C# code to create an Azure VM using the Microsoft.Azure.Management.Fluent NuGet package.
+var azure = Azure
+    .Configure()
+    .WithLogLevel(HttpLoggingDelegatingHandler.Level.Basic)
+    .Authenticate(credentials)
+    .WithDefaultSubscription();
+// ...
+var vmName = "test-wp1-eus-vm";
+
+azure.VirtualMachines.Define(vmName)
+    .WithRegion(Region.USEast)
+    .WithExistingResourceGroup("TestResourceGroup")
+    .WithExistingPrimaryNetworkInterface(networkInterface)
+    .WithLatestWindowsImage("MicrosoftWindowsServer", "WindowsServer", "2012-R2-Datacenter")
+    .WithAdminUsername("jonc")
+    .WithAdminPassword("aReallyGoodPasswordHere")
+    .WithComputerName(vmName)
+    .WithSize(VirtualMachineSizeTypes.StandardDS1)
+    .Create();
+
+#Here's the same snippet in Java using the Azure Java SDK.
+String vmName = "test-wp1-eus-vm";
+// ...
+VirtualMachine virtualMachine = azure.virtualMachines()
+    .define(vmName)
+    .withRegion(Region.US_EAST)
+    .withExistingResourceGroup("TestResourceGroup")
+    .withExistingPrimaryNetworkInterface(networkInterface)
+    .withLatestWindowsImage("MicrosoftWindowsServer", "WindowsServer", "2012-R2-Datacenter")
+    .withAdminUsername("jonc")
+    .withAdminPassword("aReallyGoodPasswordHere")
+    .withComputerName(vmName)
+    .withSize("Standard_DS1")
+    .create();
