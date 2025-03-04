@@ -1,0 +1,24 @@
+#Setting	                                              Value
+Project Details
+Subscription	                                          Concierge Subscription
+Resource group	                                        Select learn-312c4ca8-0de3-4d8b-99cd-28620dc39b16 from the drop-down
+
+Instance details	
+Virtual machine name	                                  Enter test-ubuntu-cus-vm
+Region	                                                From the dropdown list, select a geographical location close to you.
+Availability options	                                  No infrastructure redundancy required
+Security type	                                          Standard
+Image	                                                  Ubuntu Server 24.04 LTS - Gen2
+VM architecture	                                        x64
+Run with Azure Spot discount	                          Unchecked
+Size	                                                  Standard D2s V3
+
+Administrator account	
+Authentication type	                                    SSH public key
+Username	                                              Enter a username
+SSH public key source	                                  Generate a new key pair
+Key pair name	                                          test-ubuntu-cus-vm_key
+
+Inbound port rules	
+Public inbound ports	                                  Allow selected ports
+Select inbound ports	                                  SSH (22)
