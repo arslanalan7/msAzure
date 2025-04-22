@@ -1,0 +1,56 @@
+az group create --name learn-deploy-aci-rg --location eastus  #create resource group. When you delete this group all the resources in this group will be deleted. 
+                                                              #So, you will ensure the complete deletion of test resources
+DNS_NAME_LABEL=aci-demo-$RANDOM                              #to create a Bash variable that holds a unique DNS name
+
+#Create a container. mcr.microsoft.com/azuredocs/aci-helloworld is a basic Node.js web application
+az container create \
+  --resource-group learn-deploy-aci-rg \
+  --name mycontainer \
+  --image mcr.microsoft.com/azuredocs/aci-helloworld \
+  --os-type Linux \
+  --cpu 1 \
+  --memory 1.5 \
+  --ports 80 \
+  --dns-name-label $DNS_NAME_LABEL \
+  --location eastus
+
+#When the az container create command completes, run az container show to check its status
+az container show \
+  --resource-group learn-deploy-aci-rg \
+  --name mycontainer \
+  --query "{FQDN:ipAddress.fqdn,ProvisioningState:provisioningState}" \
+  --output table
+
+ #                                                   Output
+ #                                                   
+ #                                                   Copy
+ #                                                   FQDN                                    ProvisioningState
+ #                                                   --------------------------------------  -------------------
+ #                                                   aci-demo-0000.eastus.azurecontainer.io  Succeeded
+
+#From a browser, go to your container's FQDN to see it running
+
+#Run az container show to check your container's status:
+az container show \
+  --resource-group learn-deploy-aci-rg \
+  --name mycontainer-restart-demo \
+  --query "containers[0].instanceView.currentState.state"
+
+#Run az container logs to view the container's logs to examine the output:
+az container logs \
+  --resource-group learn-deploy-aci-rg \
+  --name mycontainer-restart-demo
+
+#              Output
+#              
+#              Copy
+#              [('the', 990),
+#               ('and', 702),
+#               ('of', 628),
+#               ('to', 610),
+#               ('I', 544),
+#               ('you', 495),
+#               ('a', 453),
+#               ('my', 441),
+#               ('in', 399),
+#               ('HAMLET', 386)]
