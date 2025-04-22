@@ -221,3 +221,136 @@ az storage file download -s aci-share-demo -p <filename>
 #Run the cat command to print the contents of the file.
 cat <filename>
 
+#Get logs from your prior deployed container instance*********************************************************************************
+#Run the following az container logs command to see the output from the cats and dogs voting app container you created in the prior exercise:
+az container logs \
+  --resource-group learn-deploy-aci-rg \
+  --name aci-demo-files
+
+#You get a similar output to:
+#                    Output
+#                    
+#                    Checking for script in /app/prestart.sh
+#                    Running script /app/prestart.sh
+#                    Running inside /app/prestart.sh, you could add migrations to this file, e.g.:
+#                    
+#                    #! /usr/bin/env bash
+#                    
+#                    # Let the DB start
+#                    sleep 10;
+#                    # Run migrations
+#                    alembic upgrade head
+
+#Get container events
+
+#Run az container attach to attach to your container:
+#Enter Ctrl+C to disconnect from your attached container.
+az container attach \
+  --resource-group learn-deploy-aci-rg \
+  --name aci-demo-files
+
+#You get a similar output to:
+
+#              Output
+              
+#              Container 'aci-demo-files' is in state 'Running'...
+#              (count: 1) (last timestamp: 2021-09-21 23:48:14+00:00) pulling image "mcr.microsoft.com/azuredocs/azure-vote-front"
+#              (count: 1) (last timestamp: 2021-09-21 23:49:09+00:00) Successfully pulled image "mcr.microsoft.com/azuredocs/azure-vote-front"
+#              (count: 1) (last timestamp: 2021-09-21 23:49:12+00:00) Created container
+#              (count: 1) (last timestamp: 2021-09-21 23:49:13+00:00) Started container
+#              
+#              Start streaming logs:
+#              Checking for script in /app/prestart.sh
+#              Running script /app/prestart.sh
+
+#Execute a command in your container
+
+#To see commands in your container, run the following az container exec command to start an interactive session on your container:
+az container exec \
+  --resource-group learn-deploy-aci-rg \
+  --name aci-demo-files \
+  --exec-command /bin/sh
+
+#At this point, you're effectively working inside of the container.
+#Run the ls command to display the contents of the working directory.
+# ls
+__pycache__  config_file.cfg  main.py  prestart.sh  static  templates  uwsgi.ini
+
+#You can explore the system further if you wish. When you're done, run the exit command to stop the interactive session.
+
+#Monitor CPU and memory usage on your container
+
+#Run the following az container show command to get the ID of your Azure container instance and store the ID in a Bash variable:
+CONTAINER_ID=$(az container show \
+  --resource-group learn-deploy-aci-rg \
+  --name aci-demo-files \
+  --query id \
+  --output tsv)
+
+#Run the az monitor metrics list command to retrieve CPU usage information:
+#Note the --metrics argument. Here, CPUUsage specifies to retrieve CPU usage.
+az monitor metrics list \
+  --resource $CONTAINER_ID \
+  --metrics CPUUsage \
+  --output table
+
+#Output
+
+#                Timestamp            Name          Average
+#                -------------------  ------------  -----------
+#                2021-09-21 23:39:00  CPU Usage
+#                2021-09-21 23:40:00  CPU Usage
+#                2021-09-21 23:41:00  CPU Usage
+#                2021-09-21 23:42:00  CPU Usage
+#                2021-09-21 23:43:00  CPU Usage      0.375
+#                2021-09-21 23:44:00  CPU Usage      0.875
+#                2021-09-21 23:45:00  CPU Usage      1
+#                2021-09-21 23:46:00  CPU Usage      3.625
+#                2021-09-21 23:47:00  CPU Usage      1.5
+#                2021-09-21 23:48:00  CPU Usage      2.75
+#                2021-09-21 23:49:00  CPU Usage      1.625
+#                2021-09-21 23:50:00  CPU Usage      0.625
+#                2021-09-21 23:51:00  CPU Usage      0.5
+#                2021-09-21 23:52:00  CPU Usage      0.5
+#                2021-09-21 23:53:00  CPU Usage      0.5
+
+#Run this az monitor metrics list command to retrieve memory usage information:
+#Here, you specified MemoryUsage for the --metrics argument to retrieve memory usage information.
+az monitor metrics list \
+  --resource $CONTAINER_ID \
+  --metrics MemoryUsage \
+  --output table
+
+#Output
+
+#              Timestamp            Name          Average
+#              -------------------  ------------  -----------
+#              2021-09-21 23:43:00  Memory Usage
+#              2021-09-21 23:44:00  Memory Usage  0.0
+#              2021-09-21 23:45:00  Memory Usage  15917056.0
+#              2021-09-21 23:46:00  Memory Usage  16744448.0
+#              2021-09-21 23:47:00  Memory Usage  16842752.0
+#              2021-09-21 23:48:00  Memory Usage  17190912.0
+#              2021-09-21 23:49:00  Memory Usage  17506304.0
+#              2021-09-21 23:50:00  Memory Usage  17702912.0
+#              2021-09-21 23:51:00  Memory Usage  17965056.0
+#              2021-09-21 23:52:00  Memory Usage  18509824.0
+#              2021-09-21 23:53:00  Memory Usage  18649088.0
+#              2021-09-21 23:54:00  Memory Usage  18845696.0
+#              2021-09-21 23:55:00  Memory Usage  19181568.0
+
+
+#Clean up resources**************************************
+#In this module, you created resources using your Azure subscription. You should clean up these resources so that you aren't still charged for them.
+
+#In the Azure home page, select All resources.
+
+#Find the learn-deploy-aci-rg resource group, or whatever resource group name you used, and select it.
+
+#In the Overview tab of the resource group, select Delete resource group.
+
+#A new dialog box opens. Enter the name of the resource group and select Delete.
+
+#Select Delete again to confirm deletion. All of the resources we created in this module are deleted.
+
+
