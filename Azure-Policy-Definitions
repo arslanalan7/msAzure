@@ -1,0 +1,134 @@
+{
+  "displayName": "Allowed locations",
+  "description": "This policy enables you to restrict the locations your organization can specify when deploying resources. Use to enforce your geo-compliance requirements. Excludes resource groups, Microsoft.AzureActiveDirectory/b2cDirectories, and resources that use the 'global' region.",
+  "policyType": "BuiltIn",
+  "mode": "Indexed",
+  "metadata": {
+    "version": "1.0.0",
+    "category": "General"
+  },
+  "parameters": {
+    "listOfAllowedLocations": {
+      "type": "Array",
+      "metadata": {
+        "description": "The list of locations that can be specified when deploying resources.",
+        "strongType": "location",
+        "displayName": "Allowed locations"
+      }
+    }
+  },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "location",
+            "notIn": "[parameters('listOfAllowedLocations')]"
+          },
+          {
+            "field": "location",
+            "notEquals": "global"
+          },
+          {
+            "field": "type",
+            "notEquals": "Microsoft.AzureActiveDirectory/b2cDirectories"
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+  }
+
+#In the if condition, you can put different logical operators. not, allOf (and), anyOf (or)
+
+{
+  "if": {
+    "allOf": [
+      {
+        "field": "location",
+        "notIn": "[parameters('listOfAllowedLocations')]"
+      },
+      {
+        "field": "location",
+        "notEquals": "global"
+      },
+      {
+        "field": "type",
+        "notEquals": "Microsoft.AzureActiveDirectory/b2cDirectories"
+      }
+    ]
+  },
+  "then": {
+    "effect": "deny"
+  }
+}
+
+#Nested logical operations
+
+"if": {
+    "allOf": [
+      {
+        "not": {
+          "field": "tags",
+          "containsKey": "application"
+        }
+      },
+      {
+        "field": "type",
+        "equals": "Microsoft.Storage/storageAccounts"
+      }
+    ]
+  },
+
+#PROPERTIES
+#Fields: Name, fullName, kind, type, location, ID, identity.type, tags, tags['tagName'], property aliases
+#Value
+#Count:  Field count, value count. The current () function returns the value of the array member that's being evaluated
+#Evaluation Criteria: equals	notEquals	like	notLike	match	notMatch	matchInsensitively	notMatchInsensitively	contains	notContains	In	notIn	containsKey	
+#notContainsKey	less	less	less	lessOrEquals	lessOrEquals	lessOrEquals	greater	greater	greater	greaterOrEquals	greaterOrEquals	greaterOrEquals	exists	
+{
+  "if": {
+    "allOf": [
+      {
+        "value": "[resourceGroup().name]",
+        "like": "*netrq"
+      },
+      {
+        "field": "type",
+        "notLike": "Network/*"
+      }
+    ]
+  },
+  "then": {
+    "effect": "deny",
+    "details": {
+      "count": {
+        "field": "Microsoft.Network/virtualNetworks/addressSpace.addressPrefixes[*]",
+        "where": {
+          "value": "[ipRangeContains('10.0.0.0/24', current('Microsoft.Network/virtualNetworks/addressSpace.addressPrefixes[*]'))]",
+          "equals": "greater"
+        }
+      }
+    }
+  }
+}
+
+#Policy functions. The following table describes the functions that are only available in policy rules.
+#addDays(dateTime, numberOfDaysToAdd), Field(fieldName)  Returns the value of that field from the resource,
+#requestContext().apiVersion, policy()  Returns information about the policy that's being evaluated.
+#ipRangeContains(range, targetRange), current(indexName)  Special function that can only be used inside count expressions.
+
+#Effect types (then blocks)
+
+#disabled The disabled effect is a way to deactivate the policy, append, modify, deny, denyAction, audit, auditIfNotExists, deployIfNotExists, manual
+
+#The following list provides general guidance around interchangeable effects:
+
+#audit, deny, and either modify or append are often interchangeable.
+#auditIfNotExists and deployIfNotExists are often interchangeable.
+#manual isn't interchangeable.
+#disabled is interchangeable with any effect.
+
+#Manual scan for Brownfield scenarios
+az policy state trigger-scan
