@@ -126,3 +126,69 @@ az vm create \
     --no-wait \
     --custom-data cloud-init.txt \
     --admin-password <password>
+
+#Run the following command to create the private VM
+az vm create \
+    --resource-group "learn-72869672-0d4c-4db8-9513-6024ae1152ca" \
+    --name private \
+    --vnet-name vnet \
+    --subnet privatesubnet \
+    --image Ubuntu2204 \
+    --admin-username azureuser \
+    --no-wait \
+    --custom-data cloud-init.txt \
+    --admin-password <password>
+
+#Run the following Linux watch command to check that the VMs are running. The watch command periodically runs the az vm list command so that you can monitor the progress of the VMs.
+watch -d -n 5 "az vm list \
+    --resource-group "learn-72869672-0d4c-4db8-9513-6024ae1152ca" \
+    --show-details \
+    --query '[*].{Name:name, ProvisioningState:provisioningState, PowerState:powerState}' \
+    --output table"
+
+#A ProvisioningState value of "Succeeded" and a PowerState value of "VM running" indicate a successful deployment. When all three VMs are running, you're ready to move on. Press Ctrl-C to stop the command and continue with the exercise.
+#Run the following command to save the public IP address of the public VM to a variable named PUBLICIP
+PUBLICIP="$(az vm list-ip-addresses \
+    --resource-group "learn-72869672-0d4c-4db8-9513-6024ae1152ca" \
+    --name public \
+    --query "[].virtualMachine.network.publicIpAddresses[*].ipAddress" \
+    --output tsv)"
+
+echo $PUBLICIP
+
+#save the public IP address of the private VM to a variable named PRIVATEIP
+PRIVATEIP="$(az vm list-ip-addresses \
+    --resource-group "learn-72869672-0d4c-4db8-9513-6024ae1152ca" \
+    --name private \
+    --query "[].virtualMachine.network.publicIpAddresses[*].ipAddress" \
+    --output tsv)"
+
+echo $PRIVATEIP
+
+#Test traffic routing through the network virtual appliance
+#The final steps use the Linux traceroute utility to show how traffic is routed. You'll use the ssh command to run traceroute on each VM. The first test shows the route taken by ICMP packets sent from the public VM
+#to the private VM. The second test shows the route taken by ICMP packets sent from the private VM to the public VM.
+#Run the following command to trace the route from public to private. 
+ssh -t -o StrictHostKeyChecking=no azureuser@$PUBLICIP 'traceroute private --type=icmp; exit'
+
+#If you receive the error message bash: traceroute: command not found, wait a minute and retry the command. The automated installation of traceroute can take a minute or two after VM deployment. 
+#After the command succeeds, the output should look similar to the following example:
+
+                traceroute to private.kzffavtrkpeulburui2lgywxwg.gx.internal.cloudapp.net (10.0.1.4), 64 hops max
+                1   10.0.2.4  0.710ms  0.410ms  0.536ms
+                2   10.0.1.4  0.966ms  0.981ms  1.268ms
+                Connection to 52.165.151.216 closed.
+
+#Run the following command to trace the route from private to public. 
+ssh -t -o StrictHostKeyChecking=no azureuser@$PRIVATEIP 'traceroute public --type=icmp; exit'
+
+#You should see the traffic go directly to public (10.0.0.4) and not through the NVA, as shown in the following command output.
+#The private VM is using default routes, and traffic is routed directly between the subnets.
+
+                traceroute to public.kzffavtrkpeulburui2lgywxwg.gx.internal.cloudapp.net (10.0.0.4), 64 hops max
+                1   10.0.0.4  1.095ms  1.610ms  0.812ms
+                Connection to 52.173.21.188 closed.
+
+
+
+
