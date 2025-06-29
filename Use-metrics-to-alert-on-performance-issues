@@ -1,0 +1,33 @@
+#In this exercise, you create a Linux virtual machine (VM). This VM runs an app that runs the CPU at 100 percent utilization. You create monitoring rules in the Azure portal and in the Azure CLI to alert you about high CPU usage.
+#Create the VM
+#This VM runs a specific configuration that stresses the CPU and generates the metric monitoring data needed to trigger an alert.
+#Start by creating the configuration script. To create the cloud-init.txt file with the configuration for the VM, run the following command in Azure Cloud Shell:
+cat <<EOF > cloud-init.txt
+#cloud-config
+package_upgrade: true
+packages:
+- stress
+runcmd:
+- sudo stress --cpu 1
+EOF
+
+#To set up an Ubuntu Linux VM, run the following az vm create command. This command uses the cloud-init.txt file that you created in the previous step to configure the newly created Ubuntu Linux VM.
+#Create the metric alert using the Azure portal and CLI
+#Create the metric alert through the CLI
+#Run the following command in Cloud Shell to obtain the resource ID of the virtual machine you previously created:
+VMID=$(az vm show \
+        --resource-group "learn-7ee5e87f-171e-4549-8db4-24d68b055f1f" \
+        --name vm1 \
+        --query id \
+        --output tsv)
+
+#Run the following command to create a new metric alert. The alert is triggered when the VM CPU is greater than 80 percent.
+az monitor metrics alert create \
+    -n "Cpu80PercentAlert" \
+    --resource-group "learn-7ee5e87f-171e-4549-8db4-24d68b055f1f" \
+    --scopes $VMID \
+    --condition "max percentage CPU > 80" \
+    --description "Virtual machine is running at or greater than 80% CPU utilization" \
+    --evaluation-frequency 1m \
+    --window-size 1m \
+    --severity 3
