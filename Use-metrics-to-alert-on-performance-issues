@@ -12,6 +12,14 @@ runcmd:
 EOF
 
 #To set up an Ubuntu Linux VM, run the following az vm create command. This command uses the cloud-init.txt file that you created in the previous step to configure the newly created Ubuntu Linux VM.
+az vm create \
+    --resource-group "learn-969e7b43-30ec-46d0-8a37-3aebccc68141" \
+    --name vm1 \
+    --location eastUS \
+    --image Ubuntu2204 \
+    --custom-data cloud-init.txt \
+    --generate-ssh-keys
+
 #Create the metric alert using the Azure portal and CLI
 #Create the metric alert through the CLI
 #Run the following command in Cloud Shell to obtain the resource ID of the virtual machine you previously created:
