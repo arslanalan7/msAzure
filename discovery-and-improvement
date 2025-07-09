@@ -1,0 +1,83 @@
+#*********************************RESOURCE LİSTESİ******************************
+#1. Kaynak Envanterini Çıkar
+#Azure ortamındaki tüm kaynakları listelemek için:
+Get-AzResource | Select-Object ResourceType, Name, Location, ResourceGroupName | Export-Csv -Path "/home/arslan/resources.csv" -NoTypeInformation -Delimiter '|'
+
+#Alternatif olarak Azure Portal’da: Azure Resource Graph Explorer → Resources tablosunu sorgula:
+Resources
+| summarize count() by type
+
+#**********************AĞ TOPOLOJİSİ*************************************
+#2. Ağ Topolojisini Görselleştir: Azure Network Watcher > Topology sekmesi ile:
+
+#Bu komut, her VM’in hangi subnet ve VNet’e bağlı olduğunu listeler.
+Get-AzNetworkInterface | ForEach-Object {
+    $nic = $_
+    $vmName = ($nic.VirtualMachine.Id -split "/")[-1]
+    $subnetId = $nic.IpConfigurations[0].Subnet.Id
+    $vnetName = ($subnetId -split "/")[8]
+    $subnetName = ($subnetId -split "/")[-1]
+    [PSCustomObject]@{
+        VMName     = $vmName
+        NICName    = $nic.Name
+        VNet       = $vnetName
+        Subnet     = $subnetName
+        ResourceGroup = $nic.ResourceGroupName
+    }
+}
+
+#Bu komut, her subnet’e bağlı NSG’yi gösterir.
+Get-AzVirtualNetwork | ForEach-Object {
+    $vnet = $_
+    foreach ($subnet in $vnet.Subnets) {
+        [PSCustomObject]@{
+            VNet       = $vnet.Name
+            Subnet     = $subnet.Name
+            NSG        = if ($subnet.NetworkSecurityGroup) { ($subnet.NetworkSecurityGroup.Id -split "/")[-1] } else { "None" }
+            ResourceGroup = $vnet.ResourceGroupName
+        }
+    }
+}
+
+#Bu da NSG’lerin doğrudan NIC (yani VM) seviyesinde atanıp atanmadığını gösterir.
+Get-AzNetworkInterface | ForEach-Object {
+    $nic = $_
+    $vmName = ($nic.VirtualMachine.Id -split "/")[-1]
+    $nsgName = if ($nic.NetworkSecurityGroup) { ($nic.NetworkSecurityGroup.Id -split "/")[-1] } else { "None" }
+    [PSCustomObject]@{
+        VMName     = $vmName
+        NICName    = $nic.Name
+        NSG        = $nsgName
+        ResourceGroup = $nic.ResourceGroupName
+    }
+}
+
+#***************NETWORK SECURITY*****************************
+#NSG’leri listele:
+Get-AzNetworkSecurityGroup | Get-AzNetworkSecurityRuleConfig
+
+#Aşağıdaki komutla her kuralın hangi NSG’ye ait olduğunu ve kuralı gerçekten ne yaptığını gösterir.
+Get-AzNetworkSecurityGroup | ForEach-Object {
+    $nsg = $_
+    $nsg | Get-AzNetworkSecurityRuleConfig | ForEach-Object {
+        [PSCustomObject]@{
+            NSGName     = $nsg.Name
+            RuleName    = $_.Name
+            Direction   = $_.Direction
+            Access      = $_.Access
+            Priority    = $_.Priority
+            Protocol    = $_.Protocol
+            Source      = $_.SourceAddressPrefix
+            Destination = $_.DestinationAddressPrefix
+            Port        = $_.DestinationPortRange
+        }
+    }
+}
+
+#VPN Gateway ve App Gateway yapılandırmalarını kontrol et:
+Get-AzVirtualNetworkGateway -ResourceGroupName "RG-ADI"
+Get-AzApplicationGateway -ResourceGroupName "RG-ADI"
+
+Get-AzTag -ResourceGroupName "rg-YORPAS"
+
+
