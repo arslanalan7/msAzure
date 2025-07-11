@@ -1,0 +1,22 @@
+az group create --name learn-free-westeurope-rg --location westeurope
+
+az network vnet create \
+  --name learn-free-vnet \
+  --resource-group learn-free-westeurope-rg \
+  --subnet-name default
+
+az network nic create \
+  --resource-group learn-free-westeurope-rg \
+  --name learn-free-nic \
+  --vnet-name learn-free-vnet \
+  --subnet default
+
+az vm create \
+  --resource-group learn-free-westeurope-rg \
+  --name learn-vm-win \
+  --nics learn-free-nic \
+  --image Win2022Datacenter \
+  --admin-username azureuser \
+  --admin-password Az61416141*- \
+  --size Standard_B1s \
+  --public-ip-address ""
