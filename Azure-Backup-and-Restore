@@ -91,3 +91,148 @@ az backup protection backup-now \
 #View the status of backups in the Recovery Services vault
 #On the Azure portal menu or from the Home page, select All resources. Sort the list by Type, and then select the azure-backup Recovery Services vault. The Azure-backup recovery services vault pane appears.
 #On the Overview pane, select the interior Backup tab to display a summary of all the backup items, the storage being used, and the current status of any backup jobs.
+
+*************************************Restore a disk and create a recovered VM in Azure******************************************************
+#Kullanılabilir kurtarma noktalarını listeleme
+az backup recoverypoint list \
+    --resource-group myResourceGroup \
+    --vault-name myRecoveryServicesVault \
+    --backup-management-type AzureIaasVM \
+    --container-name myVM \
+    --item-name myVM \
+    --query [0].name \
+    --output tsv
+
+#Sanal makine diskini geri yükleme
+#Yönetilen disk geri yükleme
+#önce bir Azure depolama hesabı sağlarsınız. Bu depolama hesabı, vm yapılandırmasını ve daha sonra vm'yi geri yüklenen disklerden dağıtmak için kullanılabilecek dağıtım şablonunu depolamak için kullanılır. 
+#Ardından, yönetilen disklerin geri yüklenmesi için bir hedef kaynak grubu da sağlarsınız.
+az storage account create \
+    --resource-group myResourceGroup \
+    --name mystorageaccount \
+    --sku Standard_LRS
+
+#az backup restore restore-disks komutuyla kurtarma noktanızdan diski geri yükleyin.
+#myRecoveryPointName değerini önceki az backup recoverypoint list komutundan elde ettiğiniz kurtarma noktası adıyla değiştirin. 
+az backup restore restore-disks \
+    --resource-group myResourceGroup \
+    --vault-name myRecoveryServicesVault \
+    --container-name myVM \
+    --item-name myVM \
+    --storage-account mystorageaccount \
+    --rp-name myRecoveryPointName \
+    --target-resource-group targetRG
+
+#***Uyarı
+
+Target-resource-group sağlanmadıysa, yönetilen diskler belirli bir depolama hesabına yönetilmeyen diskler olarak geri yüklenir. Diskleri geri yüklemek için geçen süre tamamen verilen depolama hesabına
+#bağlı olduğundan, bu durum geri yükleme süresinde önemli sonuçlar doğuracaktır. Anlık geri yükleme avantajını yalnızca target-resource-group parametresi verildiğinde elde edersiniz. 
+#Amaç yönetilen diskleri yönetilmeyen olarak geri yüklemekse target-resource-group parametresini sağlamayın ve bunun yerine aşağıda gösterildiği gibi yönetilmeyen disk olarak geri yükleme parametresini sağlayın.
+#Bu parametre, Azure CLI 3.4.0'dan itibaren kullanılabilir.
+az backup restore restore-disks \
+    --resource-group myResourceGroup \
+    --vault-name myRecoveryServicesVault \
+    --container-name myVM \
+    --item-name myVM \
+    --storage-account mystorageaccount \
+    --rp-name myRecoveryPointName \
+    --restore-as-unmanaged-disk
+
+#Diskleri ikincil bölgeye geri yükleme
+az backup restore restore-disks \
+    --resource-group myResourceGroup \
+    --vault-name myRecoveryServicesVault \
+    --container-name myVM \
+    --item-name myVM \
+    --storage-account targetStorageAccountID \
+    --rp-name myRecoveryPointName \
+    --target-resource-group targetRG
+    --use-secondary-region
+
+#VM'i başka bir zpne'a geri yüklemek
+az backup restore restore-disks \
+    --resource-group myResourceGroup \
+    --vault-name myRecoveryServicesVault \
+    --container-name myVM \
+    --item-name myVM \
+    --storage-account targetStorageAccountID \
+    --rp-name myRecoveryPointName \
+    --target-resource-group targetRG
+    --target-zone 3
+
+#Yönetilmeyen diskleri geri yükleme
+az storage account create \
+    --resource-group myResourceGroup \
+    --name mystorageaccount \
+    --sku Standard_LRS
+
+az backup restore restore-disks \
+    --resource-group myResourceGroup \
+    --vault-name myRecoveryServicesVault \
+    --container-name myVM \
+    --item-name myVM \
+    --storage-account mystorageaccount \
+    --rp-name myRecoveryPointName
+
+#yönetilmeyen diskler özgün depolama hesaplarına geri yüklenir. Bu, en iyi geri yükleme performansını sağlar. Ancak tüm yönetilmeyen disklerin belirli bir depolama hesabına geri 
+#yüklenmesi gerekiyorsa, aşağıda gösterildiği gibi ilgili bayrağı kullanın.
+az backup restore restore-disks \
+        --resource-group myResourceGroup \
+        --vault-name myRecoveryServicesVault \
+        --container-name myVM \
+        --item-name myVM \
+        --storage-account mystorageaccount \
+        --rp-name myRecoveryPointName \
+        --restore-to-staging-storage-account
+    ```
+
+## Monitor the restore job
+
+To monitor the status of restore job, use [az backup job list](/cli/azure/backup/job#az-backup-job-list):
+
+```azurecli-interactive
+az backup job list \
+    --resource-group myResourceGroup \
+    --vault-name myRecoveryServicesVault \
+    --output table
+
+#Geri yüklenen diskten sanal makine oluşturma
+#Bu komutla job ID’leri bulabilir, 
+az backup job list \
+  --vault-name myRecoveryServicesVault \
+  --resource-group myResourceGroup
+
+#sonra -n parametresiyle detaylarını görebilirsin. 
+az backup job show \
+    -v myRecoveryServicesVault \
+    -g myResourceGroup \
+    -n 1fc2d55d-f0dc-4ca6-ad48-aca0fe5d0414
+
+#Bu sorgunun çıktısı tüm ayrıntıları verir, ancak yalnızca depolama hesabı içeriğiyle ilgileniyoruz. İlgili ayrıntıları getirmek için Azure CLI'nın sorgu özelliğini kullanabiliriz
+az backup job show \
+    -v myRecoveryServicesVault \
+    -g myResourceGroup \
+    -n 1fc2d55d-f0dc-4ca6-ad48-aca0fe5d0414 \
+    --query properties.extendedInfo.propertyBag
+
+#İlk olarak, iş ayrıntılarından şablon blob Uri'sini ayıklayın
+az backup job show \
+    -v myRecoveryServicesVault \
+    -g myResourceGroup \
+    -n 1fc2d55d-f0dc-4ca6-ad48-aca0fe5d0414 \
+    --query properties.extendedInfo.propertyBag."""Template Blob Uri"""
+
+"https://mystorageaccount.blob.core.windows.net/myVM-daa1931199fd4a22ae601f46d8812276/azuredeploy1fc2d55d-f0dc-4ca6-ad48-aca0519c0232.json"
+
+#Şimdi bu kapsayıcı ve şablon için SAS belirtecini burada ayrıntılı olarak bulabilirsiniz
+expiretime=$(date -u -d '30 minutes' +%Y-%m-%dT%H:%MZ)
+token=$(az storage blob generate-sas --account-name $storageAccountName --container-name $containerName --name $templateName --permissions r --expiry $expiretime --auth-mode login --as-user --https-only --output tsv)
+url=$(az storage blob url --account-name $storageAccountName --container-name $containerName --name $templateName --output tsv --auth-mode login)
+
+#VM oluşturmak için şablonu dağıtma
+az deployment group create \
+  --resource-group ExampleGroup \
+  --template-uri $url?$token
+
+#Kurtarılan diskinizden sanal makinenizin oluşturulduğunu onaylamak için az vm list komutuyla aşağıdaki şekilde kaynak grubunuzdaki sanal makineleri listeleyin:
+az vm list --resource-group myResourceGroup --output table
