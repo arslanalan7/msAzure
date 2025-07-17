@@ -1,0 +1,32 @@
+# Clean up stale (offline, artık kullanılmayan) devices
+#Get the list of devices
+#To get all devices and store the returned data in a CSV file:
+Get-MgDevice -All | select-object -Property AccountEnabled, DeviceId, OperatingSystem, OperatingSystemVersion, DisplayName, TrustType, ApproximateLastSignInDateTime | export-csv devicelist-summary.csv -NoTypeInformation
+
+#f you have a large number of devices in your directory, use the timestamp filter to narrow down the number of returned devices. 
+#To get all devices that haven't logged on in 90 days and store the returned data in a CSV file:
+$dt = (Get-Date).AddDays(-90)
+Get-MgDevice -All | Where {$_.ApproximateLastSignInDateTime -le $dt} | select-object -Property AccountEnabled, DeviceId, OperatingSystem, OperatingSystemVersion, DisplayName, TrustType, ApproximateLastSignInDateTime | export-csv devicelist-olderthan-90days-summary.csv -NoTypeInformation
+
+#Set devices to disabled
+#Using the same commands we can pipe the output to the set command to disable the devices over a certain age.
+$dt = (Get-Date).AddDays(-90)
+$params = @{
+	accountEnabled = $false
+}
+
+$Devices = Get-MgDevice -All | Where {$_.ApproximateLastSignInDateTime -le $dt}
+foreach ($Device in $Devices) { 
+   Update-MgDevice -DeviceId $Device.Id -BodyParameter $params 
+}
+
+#Delete devices
+#Caution
+#The Remove-MgDevice cmdlet does not provide a warning. Running this command will delete devices without prompting. There is no way to recover deleted devices.
+#Before administrators delete any devices, back up any BitLocker recovery keys you might need in the future. There's no way to recover BitLocker recovery keys after deleting the associated device.
+#Building on the disable devices example we look for disabled devices, now inactive for 120 days, and pipe the output to Remove-MgDevice to delete those devices.
+$dt = (Get-Date).AddDays(-120)
+$Devices = Get-MgDevice -All | Where {($_.ApproximateLastSignInDateTime -le $dt) -and ($_.AccountEnabled -eq $false)}
+foreach ($Device in $Devices) {
+   Remove-MgDevice -DeviceId $Device.Id
+}
