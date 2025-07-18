@@ -1,0 +1,85 @@
+#Create an Azure custom role using Azure PowerShell
+#The easiest way to create a custom role is to start with a built-in role, edit it, and then create a new role.
+#In PowerShell, use the Get-AzProviderOperation command to get the list of operations for the Microsoft.Support resource provider. It's helpful to know the operations that are available to create your permissions. 
+Get-AzProviderOperation "Microsoft.Support/*" | FT Operation, Description -AutoSize
+
+      Operation                              Description
+      ---------                              -----------
+      Microsoft.Support/register/action      Registers to Support Resource Provider
+      Microsoft.Support/supportTickets/read  Gets Support Ticket details (including status, severity, contact ...
+      Microsoft.Support/supportTickets/write Creates or Updates a Support Ticket. You can create a Support Tic...
+
+#Use the Get-AzRoleDefinition command to output the Reader role in JSON format.
+Get-AzRoleDefinition -Name "Reader" | ConvertTo-Json | Out-File C:\CustomRoles\ReaderSupportRole.json
+
+#Open the ReaderSupportRole.json file in an editor.
+
+      {
+        "Name": "Reader",
+        "Id": "acdd72a7-3385-48ef-bd42-f606fba81ae7",
+        "IsCustom": false,
+        "Description": "Lets you view everything, but not make any changes.",
+        "Actions": [
+          "*/read"
+        ],
+        "NotActions": [],
+        "DataActions": [],
+        "NotDataActions": [],
+        "AssignableScopes": [
+          "/"
+        ]
+      }
+
+#Edit the JSON file to add the "Microsoft.Support/*" action to the Actions property. Be sure to include a comma after the read action. This action will allow the user to create support tickets.
+
+#Get the ID of your subscription using the Get-AzSubscription command.
+Get-AzSubscription
+
+#In AssignableScopes, add your subscription ID with the following format: "/subscriptions/00000000-0000-0000-0000-000000000000"
+
+      {
+        "Name": "Reader Support Tickets",
+        "IsCustom": true,
+        "Description": "View everything in the subscription and also open support tickets.",
+        "Actions": [
+          "*/read",
+          "Microsoft.Support/*"
+        ],
+        "NotActions": [],
+        "DataActions": [],
+        "NotDataActions": [],
+        "AssignableScopes": [
+          "/subscriptions/f5998593-bf7a-41e9-b2f1-000000000000"
+        ],
+        "Condition": null,
+        "ConditionVersion": null
+      }
+
+#To create the new custom role, use the New-AzRoleDefinition command and specify the JSON role definition file.
+New-AzRoleDefinition -InputFile "C:\CustomRoles\ReaderSupportRole.json"
+
+#To list all your custom roles, use the Get-AzRoleDefinition command. We can see the custom role just added
+Get-AzRoleDefinition | ? {$_.IsCustom -eq $true} | FT Name, IsCustom
+
+      Name                   IsCustom
+      ----                   --------
+      Reader Support Tickets     True
+
+#Update a custom role
+Get-AzRoleDefinition -Name "Reader Support Tickets" | ConvertTo-Json | Out-File C:\CustomRoles\ReaderSupportRole2.json
+
+Set-AzRoleDefinition -InputFile "C:\CustomRoles\ReaderSupportRole2.json"
+
+#****Another update method*******
+
+#To use the PSRoleDefinition object to update your custom role, first use the Get-AzRoleDefinition command to get the role.
+$role = Get-AzRoleDefinition "Reader Support Tickets"
+
+#Call the Add method to add the action to read diagnostic settings.
+$role.Actions.Add("Microsoft.Insights/diagnosticSettings/*/read")
+
+#Use the Set-AzRoleDefinition to update the role.
+Set-AzRoleDefinition -Role $role
+
+#Delete a custom role
+Get-AzRoleDefinition "Reader Support Tickets"
