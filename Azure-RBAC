@@ -83,3 +83,85 @@ Set-AzRoleDefinition -Role $role
 
 #Delete a custom role
 Get-AzRoleDefinition "Reader Support Tickets"
+
+#***************************Create an Azure custom role using Azure CLI*****************************************
+
+#Create a new file named ReaderSupportRole.json and add the following JSON
+
+                  {
+                    "Name": "",
+                    "IsCustom": true,
+                    "Description": "",
+                    "Actions": [],
+                    "NotActions": [],
+                    "DataActions": [],
+                    "NotDataActions": [],
+                    "AssignableScopes": [
+                      "/subscriptions/{subscriptionId1}"
+                    ]
+                  }
+
+#Add the following actions to the Actions property. These actions allow the user to view everything in the subscription and create support tickets.
+"*/read",
+"Microsoft.Support/*"
+
+#Get the ID of your subscription using the az account list command.
+az account list --output table
+
+            Name    CloudName    SubscriptionId                        TenantId                              State    IsDefault
+            ------  -----------  ------------------------------------  ------------------------------------  -------  -----------
+            000000  AzureCloud   00000000-0000-0000-0000-000000000000  00000000-0000-0000-0000-000000000000  Enabled  True
+
+#In AssignableScopes, replace {subscriptionId1} with your subscription ID.
+#Change the Name and Description properties to "Reader Support Tickets" and "View everything in the subscription and also open support tickets."
+
+#Your JSON file should look like the following:
+
+            {
+              "Name": "Reader Support Tickets",
+              "IsCustom": true,
+              "Description": "View everything in the subscription and also open support tickets.",
+              "Actions": [
+                "*/read",
+                "Microsoft.Support/*"
+              ],
+              "NotActions": [],
+              "DataActions": [],
+              "NotDataActions": [],
+              "AssignableScopes": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000"
+              ]
+            }
+
+#To create the new custom role, use the az role definition create command and specify the JSON role definition file.
+az role definition create --role-definition "~/CustomRoles/ReaderSupportRole.json"
+
+#List custom roles
+az role definition list --custom-role-only true
+
+#Update a custom role
+
+#In Actions, add the action to create and manage resource group deployments "Microsoft.Resources/deployments/*". Be sure to include a comma after the previous action.
+
+            {
+              "Name": "Reader Support Tickets",
+              "IsCustom": true,
+              "Description": "View everything in the subscription and also open support tickets.",
+              "Actions": [
+                "*/read",
+                "Microsoft.Support/*",
+                "Microsoft.Resources/deployments/*"
+              ],
+              "NotActions": [],
+              "DataActions": [],
+              "NotDataActions": [],
+              "AssignableScopes": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000"
+              ]
+            }
+
+#To update the custom role, use the az role definition update command and specify the updated JSON file.
+az role definition update --role-definition "~/CustomRoles/ReaderSupportRole.json"
+
+#Delete a custom role
+az role definition delete --name "Reader Support Tickets"
