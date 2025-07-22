@@ -1,0 +1,108 @@
+#Create a policy definition with PowerShell*****************************************************
+#To create a policy definition from a file, pass the path to the file. For an external file, use the following example:
+$definition = New-AzPolicyDefinition `
+    -Name 'denyCoolTiering' `
+    -DisplayName 'Deny cool access tiering for storage' `
+    -Policy 'https://raw.githubusercontent.com/Azure/azure-policy-samples/master/samples/Storage/storage-account-access-tier/azurepolicy.rules.json'
+
+#For a local file use, use the following example:
+$definition = New-AzPolicyDefinition `
+    -Name 'denyCoolTiering' `
+    -Description 'Deny cool access tiering for storage' `
+    -Policy 'c:\policies\coolAccessTier.json'
+
+#create a policy definition with an inline rule that includes parameters
+$policy = '{
+    "if": {
+        "allOf": [{
+                "field": "type",
+                "equals": "Microsoft.Storage/storageAccounts"
+            },
+            {
+                "not": {
+                    "field": "location",
+                    "in": "[parameters(''allowedLocations'')]"
+                }
+            }
+        ]
+    },
+    "then": {
+        "effect": "Deny"
+    }
+}'
+
+$parameters = '{
+    "allowedLocations": {
+        "type": "array",
+        "metadata": {
+            "description": "The list of locations that can be specified when deploying storage accounts.",
+            "strongType": "location",
+            "displayName": "Allowed locations"
+        }
+    }
+}'
+
+$definition = New-AzPolicyDefinition -Name 'storageLocations' -Description 'Policy to specify locations for storage accounts.' -Policy $policy -Parameter $parameters
+
+#View policy definitions with PowerShell
+Get-AzPolicyDefinition
+
+
+#*******************Create a policy definition with Azure CLI*******************************************************************************************
+
+#You can create a policy definition using Azure CLI with the az policy definition command. To create a policy definition with an inline rule, use the following example:
+az policy definition create --name 'denyCoolTiering' --description 'Deny cool access tiering for storage' --rules '{
+    "if": {
+        "allOf": [{
+                "field": "type",
+                "equals": "Microsoft.Storage/storageAccounts"
+            },
+            {
+                "field": "kind",
+                "equals": "BlobStorage"
+            },
+            {
+                "field": "Microsoft.Storage/storageAccounts/accessTier",
+                "equals": "cool"
+            }
+        ]
+    },
+    "then": {
+        "effect": "deny"
+    }
+}'
+
+#View policy definitions with Azure CLI
+az policy definition list
+
+
+#*******Create a policy initiative definition with Azure CLI************************************************************
+az policy set-definition create -n readOnlyStorage --definitions '[
+        {
+            "policyDefinitionId": "/subscriptions/mySubId/providers/Microsoft.Authorization/policyDefinitions/storagePolicy",
+            "parameters": { "storageSku": { "value": "[parameters(\"requiredSku\")]" } }
+        }
+    ]' \
+    --params '{ "requiredSku": { "type": "String" } }'
+
+
+#************Create a policy initiative definition with Azure PowerShell***************************************
+#To create a policy initiative definition with an existing policy definition, use the following policy initiative definition file as VMPolicySet.json:
+[
+    {
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/2a0e14a6-b0a6-4fab-991a-187a4f81c498",
+        "parameters": {
+            "tagName": {
+                "value": "Business Unit"
+            },
+            "tagValue": {
+                "value": "Finance"
+            }
+        }
+    },
+    {
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/464dbb85-3d5f-4a1d-bb09-95a9b5dd19cf"
+    }
+]
+
+New-AzPolicySetDefinition -Name 'VMPolicySetDefinition' -Metadata '{"category":"Virtual Machine"}' -PolicyDefinition C:\VMPolicySet.json
