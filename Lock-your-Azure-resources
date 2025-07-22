@@ -1,0 +1,50 @@
+#*********Azure PowerShell***********************************
+#To lock a resource, provide the resource's name, resource type, and resource group name.
+New-AzResourceLock -LockLevel CanNotDelete -LockName LockSite -ResourceName examplesite -ResourceType Microsoft.Web/sites -ResourceGroupName exampleresourcegroup
+
+#To lock a resource group, provide the resource group name.
+New-AzResourceLock -LockName LockGroup -LockLevel CanNotDelete -ResourceGroupName exampleresourcegroup
+
+#To get all the locks in your subscription, use:
+Get-AzResourceLock
+
+#To get all locks for a resource, use:
+Get-AzResourceLock -ResourceName examplesite -ResourceType Microsoft.Web/sites -ResourceGroupName exampleresourcegroup
+
+#To get all locks for a resource group, use:
+Get-AzResourceLock -ResourceGroupName exampleresourcegroup
+
+#To delete a lock for a resource, use:
+$lockId = (Get-AzResourceLock -ResourceGroupName exampleresourcegroup -ResourceName examplesite -ResourceType Microsoft.Web/sites).LockId
+Remove-AzResourceLock -LockId $lockId
+
+#To delete a lock for a resource group, use:
+$lockId = (Get-AzResourceLock -ResourceGroupName exampleresourcegroup).LockId
+Remove-AzResourceLock -LockId $lockId
+
+
+
+#***********************************Azure CLI************************************************************
+
+#To lock a resource, provide the resource name, resource type, and resource group name.
+az lock create --name LockSite --lock-type CanNotDelete --resource-group exampleresourcegroup --resource-name examplesite --resource-type Microsoft.Web/sites
+
+#To lock a resource group, provide the resource group name.
+az lock create --name LockGroup --lock-type CanNotDelete --resource-group exampleresourcegroup
+
+#To get all the locks in your subscription, use:
+az lock list
+
+#To get all locks for a resource, use:
+az lock list --resource-group exampleresourcegroup --resource-name examplesite --namespace Microsoft.Web --resource-type sites --parent ""
+
+#To get all locks for a resource group, use:
+az lock list --resource-group exampleresourcegroup
+
+#To delete a lock for a resource, use:
+lockid=$(az lock show --name LockSite --resource-group exampleresourcegroup --resource-type Microsoft.Web/sites --resource-name examplesite --output tsv --query id)
+az lock delete --ids $lockid
+
+#To delete a lock for a resource group, use:
+lockid=$(az lock show --name LockSite --resource-group exampleresourcegroup  --output tsv --query id)
+az lock delete --ids $lockid
