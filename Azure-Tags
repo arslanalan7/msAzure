@@ -1,0 +1,16 @@
+#*****Azure PowerShell******************************************
+
+#Add tags to a resource group without existing tags:
+Set-AzResourceGroup -Name myrg -Tag @{ "Department"="Finance"; "Environment"="Test" }
+
+#Add tags to a resource group that has existing tags, retrieve the existing tags, add the new tag, and reapply the tags:
+$tags = (Get-AzResourceGroup -Name myrg).Tags
+$tags.Add("Status", "Approved")
+Set-AzResourceGroup -Tag $tags -Name myrg
+
+
+
+#************************Azure CLI******************************
+
+#Overwrite the existing tags on a resource group:
+az group update -n myrg --tags 'Environment=Test' 'Department=IT'
