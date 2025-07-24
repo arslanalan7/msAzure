@@ -1,0 +1,41 @@
+#*****************Use the Azure CLI**************************
+#Validate
+#To test your move scenario without actually moving resources in real time, use the az resource invoke-action command.
+az resource invoke-action --action validateMoveResources \
+  --ids "/subscriptions/{subscription-id}/resourceGroups/{source-rg}" \
+  --request-body "{  \"resources\": [\"/subscriptions/{subscription-id}/resourceGroups/{source-rg}/providers/{resource-provider}/{resource-type}/{resource-name}\", \"/subscriptions/{subscription-id}/resourceGroups/{source-rg}/providers/{resource-provider}/{resource-type}/{resource-name}\", \"/subscriptions/{subscription-id}/resourceGroups/{source-rg}/providers/{resource-provider}/{resource-type}/{resource-name}\"],\"targetResourceGroup\":\"/subscriptions/{subscription-id}/resourceGroups/{destination-rg}\" }"
+
+#If validation passes, you see:
+  {} Finished .. 
+
+#Move
+webapp=$(az resource show -g OldRG -n ExampleSite --resource-type "Microsoft.Web/sites" --query id --output tsv)
+plan=$(az resource show -g OldRG -n ExamplePlan --resource-type "Microsoft.Web/serverfarms" --query id --output tsv)
+az resource move --destination-group newgroup --ids $webapp $plan
+
+#***********PowerShell********************
+#Validate
+$sourceName = "sourceRG"
+$destinationName = "destinationRG"
+$resourcesToMove = @("app1", "app2")
+
+$sourceResourceGroup = Get-AzResourceGroup -Name $sourceName
+$destinationResourceGroup = Get-AzResourceGroup -Name $destinationName
+
+$resources = Get-AzResource -ResourceGroupName $sourceName | Where-Object { $_.Name -in $resourcesToMove }
+
+Invoke-AzResourceAction -Action validateMoveResources `
+  -ResourceId $sourceResourceGroup.ResourceId `
+  -Parameters @{
+  resources = $resources.ResourceId;  # Wrap in an @() array if providing a single resource ID string.
+  targetResourceGroup = $destinationResourceGroup.ResourceId
+  }
+
+#Move
+$sourceName = "sourceRG"
+$destinationName = "destinationRG"
+$resourcesToMove = @("app1", "app2")
+
+$resources = Get-AzResource -ResourceGroupName $sourceName | Where-Object { $_.Name -in $resourcesToMove }
+
+Move-AzResource -DestinationResourceGroupName $destinationName -ResourceId $resources.ResourceId
