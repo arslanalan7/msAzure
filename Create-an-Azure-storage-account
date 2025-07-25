@@ -1,0 +1,96 @@
+#**************************PowerShell*********************************
+
+Connect-AzAccount
+
+#first create a new resource group
+$resourceGroup = "<resource-group>"
+$location = "<location>"
+New-AzResourceGroup -Name $resourceGroup -Location $location
+
+#If you're not sure which region to specify for the -Location parameter, you can retrieve a list of supported regions for your subscription
+Get-AzLocation | select Location
+
+#Next, create a standard general-purpose v2 storage account with read-access geo-redundant storage (RA-GRS)
+New-AzStorageAccount -ResourceGroupName $resourceGroup `
+  -Name <account-name> `
+  -Location $location `
+  -SkuName Standard_RAGRS `
+  -Kind StorageV2 `
+  -AllowBlobPublicAccess $false `
+  -MinimumTlsVersion TLS1_2
+
+#To create an account with ************Azure DNS zone endpoints (preview)****************, follow these steps:
+#Register for the preview as described in Azure DNS zone endpoints (preview).
+#Make sure you have the latest version of PowerShellGet installed.
+Install-Module PowerShellGet -Repository PSGallery -Force
+
+#nstall version 4.4.2-preview or later of the Az.Storage PowerShell module. 
+Install-Module Az.Storage -Repository PsGallery -RequiredVersion 4.4.2-preview -AllowClobber -AllowPrerelease -Force
+
+#Next, create the account, specifying AzureDnsZone for the -DnsEndpointType parameter. After the account is created, you can see the service endpoints by getting the PrimaryEndpoints and SecondaryEndpoints properties for the storage account.
+$rgName = "<resource-group>"
+$accountName = "<storage-account>"
+
+$account = New-AzStorageAccount -ResourceGroupName $rgName `
+          -Name $accountName `
+          -SkuName Standard_RAGRS `
+          -Location <location> `
+          -Kind StorageV2 `
+          -AllowBlobPublicAccess $false `
+          -MinimumTlsVersion TLS1_2 `
+          -DnsEndpointType AzureDnsZone
+
+$account.PrimaryEndpoints
+$account.SecondaryEndpoints 
+
+#Delete a storage account
+#If you try to delete a storage account associated with an Azure virtual machine, you might get an error about the storage account still being in use.
+Remove-AzStorageAccount -Name <storage-account> -ResourceGroupName <resource-group>
+
+
+
+
+#*****************************CLI************************************
+
+az login
+
+#first create a new resource group 
+az group create \
+  --name storage-resource-group \
+  --location eastus
+
+#If you're not sure which region to specify for the --location parameter, you can retrieve a list of supported regions for your subscription
+az account list-locations \
+  --query "[].{Region:name}" \
+  --out table
+
+#create a standard general-purpose v2 storage account with read-access geo-redundant storage
+az storage account create \
+  --name <account-name> \
+  --resource-group storage-resource-group \
+  --location eastus \
+  --sku Standard_RAGRS \
+  --kind StorageV2 \
+  --min-tls-version TLS1_2 \
+  --allow-blob-public-access false
+
+#To create an account with *******************Azure DNS zone endpoints (preview)**************, first register for the preview as described in Azure DNS zone endpoints (preview). Next, install the preview extension for the Azure CLI if it's not already installed:
+az extension add --name storage-preview
+
+#Next, create the account, specifying AzureDnsZone for the --dns-endpoint-type parameter. After the account is created, you can see the service endpoints by getting the PrimaryEndpoints property of the storage account.
+az storage account create \
+    --name <account-name> \
+    --resource-group <resource-group> \
+    --location <location> \
+    --min-tls-version TLS1_2 \
+    --allow-blob-public-access false \
+    --dns-endpoint-type AzureDnsZone
+
+#After the account is created, you can return the service endpoints by getting the primaryEndpoints and secondaryEndpoints properties for the storage account.
+az storage account show \
+    --resource-group <resource-group> \
+    --name <account-name> \
+    --query '[primaryEndpoints, secondaryEndpoints]'
+
+#Delete a storage account
+az storage account delete --name <storage-account> --resource-group <resource-group>
