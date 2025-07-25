@@ -1,0 +1,87 @@
+#****************PowerShell**********************************
+
+#Change the display name 
+Update-AzManagementGroup -GroupId 'ContosoIt' -DisplayName 'Contoso Group'
+
+#Delete
+Remove-AzManagementGroup -GroupId 'Contoso'
+
+#View all MG
+Get-AzManagementGroup
+
+#For a single management group's information, use the -GroupId parameter:
+Get-AzManagementGroup -GroupId 'Contoso'
+
+#To return a specific management group and all the levels of the hierarchy under it, use the -Expand and -Recurse parameters:
+      TestGroupParent
+      ├── TestGroup1DisplayName
+      │   └── TestRecurseChild
+      └── TestGroup2DisplayName
+$response = Get-AzManagementGroup -GroupId TestGroupParent -Expand -Recurse
+C:\> $response
+
+    Id                : /providers/Microsoft.Management/managementGroups/TestGroupParent
+    Type              : /providers/Microsoft.Management/managementGroups
+    Name              : TestGroupParent
+    TenantId          : 00000000-0000-0000-0000-000000000000
+    DisplayName       : TestGroupParent
+    UpdatedTime       : 2/1/2018 11:15:46 AM
+    UpdatedBy         : 00000000-0000-0000-0000-000000000000
+    ParentId          : /providers/Microsoft.Management/managementGroups/00000000-0000-0000-0000-000000000000
+    ParentName        : 00000000-0000-0000-0000-000000000000
+    ParentDisplayName : 00000000-0000-0000-0000-000000000000
+    Children          : {TestGroup1DisplayName, TestGroup2DisplayName}
+
+$response.Children[0]
+
+    Type        : /managementGroup
+    Id          : /providers/Microsoft.Management/managementGroups/TestGroup1
+    Name        : TestGroup1
+    DisplayName : TestGroup1DisplayName
+    Children    : {TestRecurseChild}
+
+$response.Children[0].Children[0]
+
+    Type        : /managementGroup
+    Id          : /providers/Microsoft.Management/managementGroups/TestRecurseChild
+    Name        : TestRecurseChild
+    DisplayName : TestRecurseChild
+    Children    :
+
+#Move a subscription
+New-AzManagementGroupSubscription -GroupId 'Contoso' -SubscriptionId '12345678-1234-1234-1234-123456789012'
+
+#To remove the link between the subscription and the management group, use the Remove-AzManagementGroupSubscription command:
+Remove-AzManagementGroupSubscription -GroupId 'Contoso' -SubscriptionId '12345678-1234-1234-1234-123456789012'
+
+#Move a management group
+$parentGroup = Get-AzManagementGroup -GroupId ContosoIT
+Update-AzManagementGroup -GroupId 'Contoso' -ParentId $parentGroup.id
+
+
+
+#****************CLI**********************************
+
+#Change the display name 
+az account management-group update --name 'Contoso' --display-name 'Contoso Group'
+
+#Delete
+az account management-group delete --name 'Contoso'
+
+#You use the list command to retrieve all groups:
+az account management-group list
+
+#For a single management group's information, use the show command:
+az account management-group show --name 'Contoso'
+
+#To return a specific management group and all the levels of the hierarchy under it, use the -Expand and -Recurse parameters:
+az account management-group show --name 'Contoso' -e -r
+
+#Move a subscription
+az account management-group subscription add --name 'Contoso' --subscription '12345678-1234-1234-1234-123456789012'
+
+#To remove the subscription from the management group, use the subscription remove command:
+az account management-group subscription remove --name 'Contoso' --subscription '12345678-1234-1234-1234-123456789012'
+
+#Move a management group
+az account management-group update --name 'Contoso' --parent ContosoIT
