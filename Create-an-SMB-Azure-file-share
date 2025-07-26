@@ -1,0 +1,208 @@
+#***************************PowerShell****************************************
+
+#Create a provisioned v2 storage account
+$resourceGroupName = "<my-resource-group>"
+$storageAccountName = "<my-storage-account-name>"
+$region = "<my-region>"
+$storageAccountKind = "FileStorage"
+# Valid SKUs for provisioned v2 file shares are 'PremiumV2_LRS' (SSD Local), 
+# 'PremiumV2_ZRS' (SSD Zone), 'StandardV2_LRS' (HDD Local), 
+# 'StandardV2_GRS' (HDD Geo), 'StandardV2_ZRS' (HDD Zone), 
+# 'StandardV2_GZRS' (HDD GeoZone).
+$storageAccountSku = "StandardV2_LRS"
+
+New-AzStorageAccount -ResourceGroupName $resourceGroupName -AccountName $storageAccountName -SkuName $storageAccountSku -Kind $storageAccountKind -Location $region
+
+#o view the settings and service usage for the Provisioned V2 storage account, use the following command.
+Get-AzStorageFileServiceUsage -ResourceGroupName $resourceGroupName -StorageAccountName $storageAccountName
+
+
+#Create a provisioned v2 file share
+$shareName = "<name-of-the-file-share>"
+
+# The provisioned storage size of the share in GiB. Valid range is 32 to 262,144.
+$provisionedStorageGib = 1024
+
+# If you do not specify on the ProvisionedBandwidthMibps and ProvisionedIops, the deployment will use the recommended provisioning.
+$provisionedIops = 3000
+$provisionedThroughputMibPerSec = 130
+
+New-AzRmStorageShare -ResourceGroupName $resourceGroupName -AccountName $storageAccountName -ShareName $shareName -QuotaGiB $provisionedStorageGib;
+# -ProvisionedBandwidthMibps $provisionedThroughputMibPerSec -ProvisionedIops $provisionedIops
+$f = Get-AzRmStorageShare -ResourceGroupName $resourceGroupName -AccountName $storageAccountName -ShareName $shareName;
+$f | fl
+
+#Change the cost and performance characteristics of a file share
+# The path to the file share resource to be modified.
+$resourceGroupName = "<my-resource-group>"
+$storageAccountName = "<my-storage-account-name>"
+$shareName = "<name-of-the-file-share>"
+
+# The provisioning desired on the file share. Delete the parameters if no
+# change is desired.
+$provisionedStorageGib = 10240
+$provisionedIops = 10000
+$provisionedThroughputMibPerSec = 2048
+
+# Update the file share provisioning.
+Update-AzRmStorageShare `
+        -ResourceGroupName $resourceGroupName `
+        -AccountName $storageAccountName `
+        -ShareName $shareName `
+        -QuotaGiB $provisionedStorageGib `
+        -ProvisionedIops $provisionedIops `
+        -ProvisionedBandwidthMibps $provisionedThroughputMibPerSec
+
+$f = Get-AzRmStorageShare -ResourceGroupName $resourceGroupName -AccountName $storageAccountName -ShareName $shareName
+$f | fl
+
+#Use a file share
+New-AzStorageDirectory `
+   -Context $storageAcct.Context `
+   -ShareName $shareName `
+   -Path "myDirectory"
+
+##Upload a file
+# this expression will put the current date and time into a new file on your scratch drive
+cd "~/CloudDrive/"
+Get-Date | Out-File -FilePath "SampleUpload.txt" -Force
+
+# this expression will upload that newly created file to your Azure file share
+Set-AzStorageFileContent `
+   -Context $storageAcct.Context `
+   -ShareName $shareName `
+   -Source "SampleUpload.txt" `
+   -Path "myDirectory\SampleUpload.txt"
+
+#After uploading the file, you can use the Get-AzStorageFile cmdlet to check to make sure that the file was uploaded to your Azure file share.
+Get-AzStorageFile `
+    -Context $storageAcct.Context `
+    -ShareName $shareName `
+    -Path "myDirectory\" | Get-AzStorageFile
+
+#Download a file
+# Delete an existing file by the same name as SampleDownload.txt, if it exists because you've run this example before.
+Remove-Item `
+    -Path "SampleDownload.txt" `
+    -Force `
+    -ErrorAction SilentlyContinue
+
+Get-AzStorageFileContent `
+    -Context $storageAcct.Context `
+    -ShareName $shareName `
+    -Path "myDirectory\SampleUpload.txt" `
+    -Destination "SampleDownload.txt"
+
+#After downloading the file, you can use the Get-ChildItem cmdlet to see that the file has been downloaded to your PowerShell Cloud Shell's scratch drive.
+Get-ChildItem | Where-Object { $_.Name -eq "SampleDownload.txt" }
+
+#Delete a File Share
+# The path to the file share resource to be deleted.
+$resourceGroupName = "<resource-group>"
+$storageAccountName = "<storage-account>"
+$fileShareName = "<file-share>"
+
+# Remove the file share
+Remove-AzRmStorageShare `
+        -ResourceGroupName $resourceGroupName `
+        -StorageAccountName $storageAccountName `
+        -Name $fileShareName
+
+#*********************************Azure CLI****************************************
+
+#Create a provisioned v2 storage account
+resourceGroupName="<my-resource-group>"
+storageAccountName="<my-storage-account-name>"
+region="<my-region>"
+storageAccountKind="FileStorage"
+
+# Valid SKUs for provisioned v2 file shares are 'PremiumV2_LRS' (SSD Local), 
+# 'PremiumV2_ZRS' (SSD Zone), 'StandardV2_LRS' (HDD Local), 
+# 'StandardV2_GRS' (HDD Geo), 'StandardV2_ZRS' (HDD Zone), 
+# 'StandardV2_GZRS' (HDD GeoZone).
+storageAccountSku="StandardV2_LRS"
+
+az storage account create --resource-group $resourceGroupName --name $storageAccountName --location $region --kind $storageAccountKind --sku $storageAccountSku --output none
+
+#To view the settings and service usage for the Provisioned V2 storage account, use the following command.
+az storage account file-service-usage --account-name $storageAccountName -g $resourceGroupName
+
+#Create a provisioned v2 file share
+shareName="<file-share>"
+
+# The provisioned storage size of the share in GiB. Valid range is 32 to
+# 262,144.
+provisionedStorageGib=1024
+
+# If you do not specify on the ProvisionedBandwidthMibps and ProvisionedIops, the deployment will use the recommended provisioning.
+provisionedIops=3000
+provisionedThroughputMibPerSec=130
+
+az storage share-rm create --resource-group $resourceGroupName --name $shareName --storage-account $storageAccountName --quota $provisionedStorageGib
+ --provisioned-iops $provisionedIops --provisioned-bandwidth-mibps $provisionedThroughputMibPerSec
+
+##Change the cost and performance characteristics of a file share
+# The path to the file share resource to be modified.
+resourceGroupName="<resource-group>"
+storageAccountName="<storage-account>"
+fileShareName="<file-share>"
+
+# The provisioning desired on the file share. Delete the parameters if no
+# change is desired.
+provisionedStorageGib=10240
+provisionedIops=10000
+provisionedThroughputMibPerSec=2048
+
+# Update the file share provisioning.
+az storage share-rm update \
+        --resource-group $resourceGroupName \
+        --name $shareName \
+        --storage-account $storageAccountName \
+        --quota $provisionedStorageGib \
+        --provisioned-iops $provisionedIops \
+        --provisioned-bandwidth-mibps $provisionedThroughputMibPerSec
+
+#Use a file share
+az storage directory create \
+   --account-name $storageAccountName \
+   --share-name $shareName \
+   --name "myDirectory" \
+   --output none
+
+#Upload a file
+cd ~/clouddrive/
+date > SampleUpload.txt
+
+az storage file upload \
+    --account-name $storageAccountName \
+    --share-name $shareName \
+    --source "SampleUpload.txt" \
+    --path "myDirectory/SampleUpload.txt"
+
+#After you upload the file, you can use the az storage file list command to make sure that the file was uploaded to your Azure file share:
+az storage file list \
+    --account-name $storageAccountName \
+    --share-name $shareName \
+    --path "myDirectory" \
+    --output table
+
+#Download a file
+# Delete an existing file by the same name as SampleDownload.txt, if it exists, because you've run this example before
+rm -f SampleDownload.txt
+
+az storage file download \
+    --account-name $storageAccountName \
+    --share-name $shareName \
+    --path "myDirectory/SampleUpload.txt" \
+    --dest "./SampleDownload.txt" \
+    --output none
+
+#Delete a file share
+resourceGroupName="<resource-group>"
+storageAccountName="<storage-account>"
+fileShareName="<file-share>"
+
+az storage share-rm delete \
+    --resource-group $resourceGroupName \
+    --storage-account $storageAccountName \
+    --name $fileShareName
