@@ -1,0 +1,38 @@
+#To install the Azure CLI using PowerShell, start PowerShell as administrator and run the following command:
+#This will download and install the latest 64-bit installer of the Azure CLI for Windows. If you prefer a 32-bit install, change URL to https://aka.ms/installazurecliwindows
+$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri https://aka.ms/installazurecliwindowsx64 -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; Remove-Item .\AzureCLI.msi
+
+#To check your version, run:
+az version
+
+#To start using Azure CLI with a local install, sign in:
+az login
+
+#After you sign in, a list of your subscriptions appears. The one marked isDefault: true is currently active. To change to a different subscription, run:
+az account set --subscription "my subscription name"
+
+#managing role assignments
+az role assignment create --assignee servicePrincipalName --role Reader --scope /subscriptions/mySubscriptionID/resourceGroups/myResourceGroupName
+az role assignment delete --assignee userSign-inName --role Contributor
+
+#Output formats
+#The Azure CLI uses JSON as its default output format, but offers other formats
+az account list --output table
+
+#Set your default output by setting the output configuration property
+az config set core.output=jsonc
+
+#to search for command names containing vm, use the following example:
+az find vm
+
+#Use the --help argument to get a complete list of subgroups within a reference group. The following example returns all subgroups for virtual machines:
+az vm --help
+
+#finds the Azure CLI commands for grouping virtual machines into availability sets, a subgroup of az vm:
+az vm availability-set --help
+
+#You can also use --help to get parameter lists and command examples for a reference command.
+az vm create --help
+
+#Run interactive mode with:
+az interactive
