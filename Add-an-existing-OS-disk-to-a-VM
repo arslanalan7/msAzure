@@ -1,0 +1,70 @@
+#*********PowerShell**********************
+#If you had a VM that you deleted and you want to reuse the OS disk to create a new VM, use Get-AzDisk.
+$resourceGroupName = 'myResourceGroup'
+$osDiskName = 'myOsDisk'
+$osDisk = Get-AzDisk `
+-ResourceGroupName $resourceGroupName `
+-DiskName $osDiskName
+#You can now attach this disk as the OS disk to a new VM.
+
+#Create the virtual network and subnet for the VM.
+$subnetName = 'mySubNet'
+$singleSubnet = New-AzVirtualNetworkSubnetConfig `
+   -Name $subnetName `
+   -AddressPrefix 10.0.0.0/24
+
+$vnetName = "myVnetName"
+$vnet = New-AzVirtualNetwork `
+   -Name $vnetName -ResourceGroupName $destinationResourceGroup `
+   -Location $location `
+   -AddressPrefix 10.0.0.0/16 `
+   -Subnet $singleSubnet
+
+#Deny RDP (if you want, yo can Allow)
+$nsgName = "myNsg"
+
+$rdpRule = New-AzNetworkSecurityRuleConfig -Name myRdpRule -Description "Deny RDP" `
+    -Access Deny -Protocol Tcp -Direction Inbound -Priority 110 `
+    -SourceAddressPrefix Internet -SourcePortRange * `
+    -DestinationAddressPrefix * -DestinationPortRange 3389
+$nsg = New-AzNetworkSecurityGroup `
+   -ResourceGroupName $destinationResourceGroup `
+   -Location $location `
+   -Name $nsgName -SecurityRules $rdpRule
+
+#Create the public IP
+$ipName = "myIP"
+$pip = New-AzPublicIpAddress `
+   -Name $ipName -ResourceGroupName $destinationResourceGroup `
+   -Location $location `
+   -AllocationMethod Static
+
+#Create the NIC.
+$nicName = "myNicName"
+$nic = New-AzNetworkInterface -Name $nicName `
+   -ResourceGroupName $destinationResourceGroup `
+   -Location $location -SubnetId $vnet.Subnets[0].Id `
+   -PublicIpAddressId $pip.Id `
+   -NetworkSecurityGroupId $nsg.Id
+
+#Set the VM name and size.
+$vmName = "myVM"
+$vmConfig = New-AzVMConfig -VMName $vmName -VMSize "Standard_A2"
+
+#Add the NIC.
+$vm = Add-AzVMNetworkInterface -VM $vmConfig -Id $nic.Id
+
+#Add the OS disk. 
+$vm = Set-AzVMOSDisk -VM $vm -ManagedDiskId $osDisk.Id -StorageAccountType Standard_LRS `
+    -DiskSizeInGB 128 -CreateOption Attach -Windows
+
+#Create the VM 
+New-AzVM -ResourceGroupName $destinationResourceGroup -Location $location -VM $vm
+
+            RequestId IsSuccessStatusCode StatusCode ReasonPhrase
+            --------- ------------------- ---------- ------------
+                                     True         OK OK   
+
+#You should see the newly created VM
+$vmList = Get-AzVM -ResourceGroupName $destinationResourceGroup
+$vmList.Name
