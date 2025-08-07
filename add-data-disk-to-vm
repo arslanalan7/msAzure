@@ -1,0 +1,70 @@
+#*****PowerShell****************************
+#Add an empty data disk to a virtual machine
+$rgName = 'myResourceGroup'
+$vmName = 'myVM'
+$location = 'East US'
+$storageType = 'Premium_LRS'
+$dataDiskName = $vmName + '_datadisk1'
+
+$diskConfig = New-AzDiskConfig -SkuName $storageType -Location $location -CreateOption Empty -DiskSizeGB 128
+$dataDisk1 = New-AzDisk -DiskName $dataDiskName -Disk $diskConfig -ResourceGroupName $rgName
+
+$vm = Get-AzVM -Name $vmName -ResourceGroupName $rgName
+$vm = Add-AzVMDataDisk -VM $vm -Name $dataDiskName -CreateOption Attach -ManagedDiskId $dataDisk1.Id -Lun 1
+
+Update-AzVM -VM $vm -ResourceGroupName $rgName
+
+
+#Using managed disks in an Availability Zone
+#To create a disk in an Availability Zone, use New-AzDiskConfig with the -Zone parameter. The following example creates a disk in zone 1.
+$rgName = 'myResourceGroup'
+$vmName = 'myVM'
+$location = 'East US 2'
+$storageType = 'Premium_LRS'
+$dataDiskName = $vmName + '_datadisk1'
+
+$diskConfig = New-AzDiskConfig -SkuName $storageType -Location $location -CreateOption Empty -DiskSizeGB 128 -Zone 1
+$dataDisk1 = New-AzDisk -DiskName $dataDiskName -Disk $diskConfig -ResourceGroupName $rgName
+
+$vm = Get-AzVM -Name $vmName -ResourceGroupName $rgName
+$vm = Add-AzVMDataDisk -VM $vm -Name $dataDiskName -CreateOption Attach -ManagedDiskId $dataDisk1.Id -Lun 1
+
+Update-AzVM -VM $vm -ResourceGroupName $rgName
+
+
+#Initialize the disk
+#After you add an empty disk, you'll need to initialize it. To initialize the disk, you can sign in to a VM and use disk management. 
+#If you enabled WinRM and a certificate on the VM when you created it, you can use remote PowerShell to initialize the disk. You can also use a custom script extension:
+$location = "location-name"
+$scriptName = "script-name"
+$fileName = "script-file-name"
+Set-AzVMCustomScriptExtension -ResourceGroupName $rgName -Location $locName -VMName $vmName -Name $scriptName -TypeHandlerVersion "1.4" -StorageAccountName "mystore1" -StorageAccountKey "primary-key" -FileName $fileName -ContainerName "scripts"
+
+#The script file can contain code to initialize the disks, for example:
+#The example script uses MBR partition style. If your disk is two tebibytes (TiB) or larger, you must use GPT partitioning. If it's under two TiB, you can use either MBR or GPT.
+              $disks = Get-Disk | Where partitionstyle -eq 'raw' | sort number
+              
+                  $letters = 70..89 | ForEach-Object { [char]$_ }
+                  $count = 0
+                  $labels = "data1","data2"
+              
+                  foreach ($disk in $disks) {
+                      $driveLetter = $letters[$count].ToString()
+                      $disk |
+                      Initialize-Disk -PartitionStyle MBR -PassThru |
+                      New-Partition -UseMaximumSize -DriveLetter $driveLetter |
+                      Format-Volume -FileSystem NTFS -NewFileSystemLabel $labels[$count] -Confirm:$false -Force
+              	$count++
+                  }
+
+#******************Attach an existing data disk to a VM
+$rgName = "myResourceGroup"
+$vmName = "myVM"
+$dataDiskName = "myDisk"
+$disk = Get-AzDisk -ResourceGroupName $rgName -DiskName $dataDiskName
+
+$vm = Get-AzVM -Name $vmName -ResourceGroupName $rgName
+
+$vm = Add-AzVMDataDisk -CreateOption Attach -Lun 0 -VM $vm -ManagedDiskId $disk.Id
+
+Update-AzVM -VM $vm -ResourceGroupName $rgName
