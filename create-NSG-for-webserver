@@ -1,0 +1,162 @@
+#************************CLI*************************************
+#First create a resource group
+az group create \
+  --name test-rg \
+  --location westus2
+
+#Create a virtual network
+az network vnet create \
+  --name vnet-1 \
+  --resource-group test-rg \
+  --address-prefixes 10.0.0.0/16
+
+#Add a subnet to a virtual network
+az network vnet subnet create \
+  --vnet-name vnet-1 \
+  --resource-group test-rg \
+  --name subnet-1 \
+  --address-prefix 10.0.0.0/24
+
+#Create application security groups: An application security group (ASGs) enables you to group together servers with similar functions, such as web servers.
+#The following example creates two application security groups.
+az network asg create \
+  --resource-group test-rg \
+  --name asg-web \
+  --location westus2
+
+az network asg create \
+  --resource-group test-rg \
+  --name asg-mgmt \
+  --location westus2
+
+#Create a network security group
+az network nsg create \
+  --resource-group test-rg \
+  --name nsg-1
+
+#Associate network security group to subnet
+az network vnet subnet update \
+  --resource-group test-rg \
+  --vnet-name vnet-1 \
+  --name subnet-1 \
+  --network-security-group nsg-1
+
+#Create security rules
+#The following example creates a rule that allows traffic inbound from the internet to the asg-web application security group over ports 80 and 443:
+az network nsg rule create \
+  --resource-group test-rg \
+  --nsg-name nsg-1 \
+  --name Allow-Web-All \
+  --access Allow \
+  --protocol Tcp \
+  --direction Inbound \
+  --priority 100 \
+  --source-address-prefix Internet \
+  --source-port-range "*" \
+  --destination-asgs "asg-web" \
+  --destination-port-range 80 443
+
+#The following example creates a rule that allows traffic inbound from the Internet to the asg-mgmt application security group over port 22:
+az network nsg rule create \
+  --resource-group test-rg \
+  --nsg-name nsg-1 \
+  --name Allow-SSH-All \
+  --access Allow \
+  --protocol Tcp \
+  --direction Inbound \
+  --priority 110 \
+  --source-address-prefix Internet \
+  --source-port-range "*" \
+  --destination-asgs "asg-mgmt" \
+  --destination-port-range 22
+
+#Caution
+
+      #In this article, SSH (port 22) is exposed to the internet for the VM that is assigned to the asg-mgmt application security group.
+      
+      #For production environments, instead of exposing port 22 to the internet, it's recommended that you connect to Azure resources that you want to manage using a VPN, private network connection, or Azure Bastion.
+
+#Create virtual machines
+#The following example creates a VM that serves as a web server. The --nsg "" option is specified to prevent Azure from creating a default network security group for the network interface Azure creates when it creates the VM. The command prompts you to create a password for the VM. 
+#SSH keys aren't used in this example to facilitate the later steps in this article. In a production environment, use SSH keys for security.
+az vm create \
+  --resource-group test-rg \
+  --name vm-web \
+  --image Ubuntu2204 \
+  --vnet-name vnet-1 \
+  --subnet subnet-1 \
+  --nsg "" \
+  --admin-username azureuser \
+  --authentication-type password \
+  --assign-identity
+
+#The following example creates a VM that serves as a management server.
+#The following example creates a VM and adds a user account. The --generate-ssh-keys parameter causes the CLI to look for an available ssh key in ~/.ssh. If one is found, that key is used. 
+#If not, one is generated and stored in ~/.ssh. Finally, we deploy the latest Ubuntu 22.04 image.
+az vm create \
+  --resource-group test-rg \
+  --name vm-mgmt \
+  --image Ubuntu2204 \
+  --vnet-name vnet-1 \
+  --subnet subnet-1 \
+  --nsg "" \
+  --admin-username azureuser \
+  --generate-ssh-keys \
+  --assign-identity
+
+#Associate network interfaces to an ASG
+#The following example associates the asg-web application security group with the vm-web-nic network interface:
+# Retrieve the network interface name associated with the virtual machine
+nic_name=$(az vm show --resource-group test-rg --name vm-web --query 'networkProfile.networkInterfaces[0].id' -o tsv | xargs basename)
+
+# Associate the application security group with the network interface
+az network nic ip-config update \
+    --name ipconfigvm-web \
+    --nic-name $nic_name \
+    --resource-group test-rg \
+    --application-security-groups asg-web
+
+#Repeat the command to associate the asg-mgmt application security group with the vm-mgmt-nic network interface.
+# Retrieve the network interface name associated with the virtual machine
+nic_name=$(az vm show --resource-group test-rg --name vm-mgmt --query 'networkProfile.networkInterfaces[0].id' -o tsv | xargs basename)
+
+# Associate the application security group with the network interface
+az network nic ip-config update \
+    --name ipconfigvm-mgmt \
+    --nic-name $nic_name \
+    --resource-group test-rg \
+    --application-security-groups asg-mgmt
+
+#Test traffic filters
+#Using an SSH client of your choice, connect to the VMs created previously. For example, the following command can be used from a command line interface such as Windows Subsystem for Linux to create an SSH session with the vm-mgmt VM. 
+#You can sign-in to the virtual machines using your Microsoft Entra ID credentials or you can use the SSH key that you used to create the VMs. 
+#In the following example, we use the SSH key to sign in to management VM and then sign in to the web VM from the management VM with a password.
+
+#Store IP address of VM in order to SSH
+export IP_ADDRESS=$(az vm show --show-details --resource-group test-rg --name vm-mgmt --query publicIps --output tsv)
+ssh -o StrictHostKeyChecking=no azureuser@$IP_ADDRESS
+
+#Use the following command to SSH to the vm-web VM from the vm-mgmt VM:
+ssh -o StrictHostKeyChecking=no azureuser@vm-web
+#The connection succeeds because a default security rule within each network security group allows traffic over all ports between all IP addresses within a virtual network. 
+#You can't SSH to the vm-web VM from the Internet because the security rule for the asg-web doesn't allow port 22 inbound from the Internet.
+
+#Use the following commands to install the nginx web server on the vm-web VM:
+# Update package source
+sudo apt-get -y update
+
+# Install NGINX
+sudo apt-get -y install nginx
+
+#The vm-web VM is allowed outbound to the Internet to retrieve nginx because a default security rule allows all outbound traffic to the Internet. Exit the vm-web SSH session, 
+#which leaves you at the username@vm-mgmt:~$ prompt of the vm-mgmt VM. To retrieve the nginx welcome screen from the vm-web VM, enter the following command:
+curl vm-web
+
+#Sign out of the vm-mgmt VM. To confirm that you can access the vm-web web server from outside of Azure, enter curl <publicIpAddress> from your own computer. 
+#The connection succeeds because the asg-web application security group, which the network interface attached to the vm-web VM is in, allows port 80 inbound from the Internet.
+
+#When no longer needed, use az group delete to remove the resource group and all of the resources it contains.
+az group delete \
+    --name test-rg \
+    --yes \
+    --no-wait
