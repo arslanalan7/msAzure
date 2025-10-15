@@ -1,0 +1,23 @@
+Get-AzSubscription # Lists all subscriptions the current account can access, including name, ID, and tenant.
+az account list # CLI
+
+Set-AzContext -SubscriptionId <ID>   # Switches the active context to the specified subscription for subsequent commands.
+az account set --subscription <ID>  # CLI
+
+Get-AzContext  # Displays the current active subscription and tenant context.
+az account show  # CLI
+
+Get-AzTenant  # Retrieves information about the tenant associated with the current account.
+az account tenant list  # CLI
+
+Get-AzRoleAssignment -Scope "/subscriptions/<ID>"  # Lists all role assignments at the subscription scope, useful for auditing access.
+az role assignment list --scope /subscriptions/<ID>  # CLI
+
+Get-AzManagementGroup  # Lists management groups, which help organize subscriptions hierarchically.
+az managementgroup list # CLI
+
+Get-AzResource -ResourceId "/subscriptions/<ID>"  # Lists resources within a specific subscription, scoped by ID.
+az resource list --subscription <ID>  #CLI
+
+Get-AzBillingInvoice  # Retrieves billing invoices for the subscription, useful for cost tracking.
+az billing invoice list  #
