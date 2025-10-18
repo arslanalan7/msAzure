@@ -1,0 +1,65 @@
+New-AzResourceGroup -Name 'Policy_Assignment_Example' -Location 'Central US'
+$rg = Get-AzResourceGroup -Name 'Policy_Assignment_Example' -Location 'Central US'   # Object representation of RG
+                                        $rg.ResourceGroupName                                                             
+                                                  # Output: Policy_Assignment_Example
+                                        $rg
+                                        
+                                              # Output: 
+                                              #  ResourceGroupName : Policy_Assignment_Example
+                                              #  Location          : centralus
+                                              #  ProvisioningState : Succeeded
+                                              #  Tags              : 
+                                              #  ResourceId        : /subscriptions/xxxxx-xxxx-xxx-xxx-xxxxx/resourceGroups/Policy_Assignment_Example
+#Go to Policy on portal, select a policy under Definitions, click it and copy the Definition ID, and then paste it into the command below
+
+$definition = Get-AzPolicyDefinition -Id '/providers/Microsoft.Authorization/policyDefinitions/0a914e76-4921-4c19-b460-a2d36003525a'
+                                          $definition
+                                          
+                                          # Metadata                     : @{version=2.0.0; category=General}
+                                          # Parameter                    : 
+                                          # PolicyRule                   : @{if=; then=}
+                                          # Versions                     : {2.0.0}
+                                          # Description                  : Audit that the resource location matches its resource group location
+                                          # DisplayName                  : Audit resource location matches resource group location
+                                          # Id                           : /providers/Microsoft.Authorization/policyDefinitions/0a914e76-4921-4c19-b460-a2d36003525a
+                                          # Mode                         : Indexed
+                                          # Name                         : 0a914e76-4921-4c19-b460-a2d36003525a
+                                          # PolicyType                   : BuiltIn
+                                          # SystemDataCreatedAt          : 
+                                          # SystemDataCreatedBy          : 
+                                          # SystemDataCreatedByType      : 
+                                          # SystemDataLastModifiedAt     : 
+                                          # SystemDataLastModifiedBy     : 
+                                          # SystemDataLastModifiedByType : 
+                                          # Type                         : Microsoft.Authorization/policyDefinitions
+                                          # Version                      : 2.0.0
+
+New-AzPolicyAssignment -Scope $rg.ResourceId -PolicyDefinition $definition -Name 'RGLocationMatch' -DisplayName 'Resource group matches resources location'
+
+                                            # Metadata                     : @{createdBy=79cc0068-d227-4646-b237-167b4ca47e39; createdOn=10/18/2025 7:59:52 AM}
+                                            # NonComplianceMessage         : 
+                                            # NotScope                     : 
+                                            # Parameter                    : 
+                                            # DefinitionVersion            : 2.*.*
+                                            # Description                  : 
+                                            # DisplayName                  : Resource group matches resources location
+                                            # EnforcementMode              : Default
+                                            # Id                           : /subscriptions/xxxx-xxxx-xxx-xx-xxxxx/resourceGroups/Policy_Assignment_Example/providers/Microsoft.Authorization/policyAssignments/RGLocationMa
+                                                                           tch
+                                            # IdentityPrincipalId          : 
+                                            # IdentityTenantId             : 
+                                            # IdentityType                 : 
+                                            # IdentityUserAssignedIdentity : Microsoft.Azure.PowerShell.Cmdlets.Policy.Models.IdentityUserAssignedIdentities
+                                            # Location                     : 
+                                            # Name                         : RGLocationMatch
+                                            # Override                     : 
+                                            # PolicyDefinitionId           : /providers/Microsoft.Authorization/policyDefinitions/0a914e76-4921-4c19-b460-a2d36003525a
+                                            # ResourceSelector             : 
+                                            # Scope                        : /subscriptions/xxxx-xxxx-xxx-xx-xxxxx/resourceGroups/Policy_Assignment_Example
+                                            # SystemDataCreatedAt          : 10/18/2025 7:59:51 AM
+                                            # SystemDataCreatedBy          : xxxxx@hotmail.com
+                                            # SystemDataCreatedByType      : User
+                                            # SystemDataLastModifiedAt     : 10/18/2025 7:59:51 AM
+                                            # SystemDataLastModifiedBy     : xxxxx@hotmail.com
+                                            # SystemDataLastModifiedByType : User
+                                            # Type                         : Microsoft.Authorization/policyAssignments
