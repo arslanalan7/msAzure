@@ -1,0 +1,34 @@
+# Variables
+$resourceGroup = "rg-storage-demo"
+$location = "EastUS"
+$storageAccountName = "arslanstorage$(Get-Random)"
+$containerName = "datablob"
+
+# Login (if needed)
+Connect-AzAccount
+
+# Create Resource Group
+New-AzResourceGroup -Name $resourceGroup -Location $location
+
+# Create Storage Account
+New-AzStorageAccount `
+  -ResourceGroupName $resourceGroup `
+  -Name $storageAccountName `
+  -Location $location `
+  -SkuName Standard_LRS `
+  -Kind StorageV2 `
+  -EnableHttpsTrafficOnly $true
+
+# Get Storage Context
+$storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroup -Name $storageAccountName
+$ctx = $storageAccount.Context
+
+# Create Blob Container (Private access)
+New-AzStorageContainer `
+  -Name $containerName `
+  -Context $ctx `
+  -Permission Off
+
+# Output
+Write-Host "Storage Account: $storageAccountName created in $location"
+Write-Host "Blob Container: $containerName created with private access"
